@@ -59,7 +59,9 @@ class DFIRCorrelationApp {
       this.graphVisualizer.setData(this.correlationResult, this.currentCase.incidents);
       const pill = document.getElementById('graphStatusPill');
       if (pill) {
-        pill.innerHTML = `<span class="status-indicator-dot"></span> ${this.graphVisualizer.nodes.length} Entities • ${this.graphVisualizer.links.length} Relations`;
+        const nodeCount = this.graphVisualizer.allNodes?.length || 0;
+        const edgeCount = this.graphVisualizer.allEdges?.length || 0;
+        pill.innerHTML = `<span class="status-indicator-dot"></span> ${nodeCount} Entities • ${edgeCount} Relations`;
       }
     }
     if (this.timelineVisualizer) {

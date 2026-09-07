@@ -132,7 +132,7 @@
     <!-- Tab 3: Interactive Neo4j Entity Graph -->
     <div id="tabGraph" class="tab-content-panel">
       <div class="graph-container-wrapper neo4j-theme">
-        <!-- Neo4j Cypher Command Prompt Bar -->
+        <!-- 1. Neo4j Cypher Command Prompt Bar -->
         <div class="cypher-prompt-bar">
           <div class="neo4j-brand-chip">
             <span class="neo4j-logo-icon">🟩</span>
@@ -149,8 +149,8 @@
           </div>
         </div>
 
-        <!-- Graph Top Toolbar -->
-        <div class="graph-top-bar">
+        <!-- 2. Interactive Toolbar Row -->
+        <div class="graph-toolbar-row">
           <div class="graph-search-container">
             <span class="search-icon">🔎</span>
             <input type="text" id="graphSearchInput" placeholder="Filter node, IP, domain, user..." />
@@ -159,7 +159,7 @@
           <div class="graph-controls">
             <button id="btnZoomIn" class="btn btn-secondary btn-ctrl" title="Zoom In">➕</button>
             <button id="btnZoomOut" class="btn btn-secondary btn-ctrl" title="Zoom Out">➖</button>
-            <button id="btnFitGraph" class="btn btn-secondary btn-ctrl" title="Fit to View">⛶ Fit</button>
+            <button id="btnFitGraph" class="btn btn-secondary btn-ctrl" title="Fit to View">⛶ Fit View</button>
             <button id="btnResetGraphZoom" class="btn btn-secondary btn-ctrl" title="Reset View">⟲ Reset</button>
             <button id="btnTogglePhysics" class="btn btn-secondary btn-ctrl" title="Pause / Resume Layout Simulation">⏸️ Pause</button>
           </div>
@@ -169,24 +169,26 @@
           </div>
         </div>
 
-        <!-- Neo4j Graph Viewport -->
-        <div id="forensicNeo4jNetwork" class="neo4j-network-container"></div>
+        <!-- 3. Neo4j Graph Viewport Container -->
+        <div class="graph-viewport-relative">
+          <div id="forensicNeo4jNetwork" class="neo4j-network-container"></div>
 
-        <!-- Neo4j Entity Legend -->
-        <div class="graph-legend neo4j-legend">
-          <div class="legend-item" data-filter="mobile"><span class="legend-dot" style="background:#00C58A;"></span> :Incident (Mobile)</div>
-          <div class="legend-item" data-filter="email"><span class="legend-dot" style="background:#0099FF;"></span> :Incident (Email)</div>
-          <div class="legend-item" data-filter="ip"><span class="legend-dot" style="background:#E74C3C;"></span> :C2_Infrastructure</div>
-          <div class="legend-item" data-filter="domain"><span class="legend-dot" style="background:#FF5722;"></span> :Domain</div>
-          <div class="legend-item" data-filter="account"><span class="legend-dot" style="background:#9C27B0;"></span> :TargetIdentity</div>
-          <div class="legend-item" data-filter="threat_actor"><span class="legend-dot" style="background:#FF7C00;"></span> :ThreatActor</div>
-          <div class="legend-item legend-nexus"><span class="legend-dot legend-dot-pulse"></span> :SharedNexus</div>
-        </div>
+          <!-- Neo4j Entity Legend Overlay -->
+          <div class="graph-legend neo4j-legend">
+            <div class="legend-item" data-filter="mobile"><span class="legend-dot" style="background:#00C58A;"></span> :Incident (Mobile)</div>
+            <div class="legend-item" data-filter="email"><span class="legend-dot" style="background:#0099FF;"></span> :Incident (Email)</div>
+            <div class="legend-item" data-filter="ip"><span class="legend-dot" style="background:#E74C3C;"></span> :C2_Infrastructure</div>
+            <div class="legend-item" data-filter="domain"><span class="legend-dot" style="background:#FF5722;"></span> :Domain</div>
+            <div class="legend-item" data-filter="account"><span class="legend-dot" style="background:#9C27B0;"></span> :TargetIdentity</div>
+            <div class="legend-item" data-filter="threat_actor"><span class="legend-dot" style="background:#FF7C00;"></span> :ThreatActor</div>
+            <div class="legend-item legend-nexus"><span class="legend-dot legend-dot-pulse"></span> :SharedNexus</div>
+          </div>
 
-        <!-- Node Inspector Sidebar -->
-        <div id="graphInspectorPanel" class="graph-inspector hidden">
-          <button id="btnCloseInspector" class="inspector-close-btn">&times;</button>
-          <div id="graphInspectorContent"></div>
+          <!-- Node Inspector Sidebar -->
+          <div id="graphInspectorPanel" class="graph-inspector hidden">
+            <button id="btnCloseInspector" class="inspector-close-btn">&times;</button>
+            <div id="graphInspectorContent"></div>
+          </div>
         </div>
       </div>
     </div>

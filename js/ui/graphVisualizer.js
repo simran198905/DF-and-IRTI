@@ -1,7 +1,7 @@
 /**
  * Cross-Vector Forensic and Threat Intelligence Correlation Framework
  * Neo4j Graph Visualizer & Cypher Engine
- * Powered by vis.Network (Neo4j Bloom / Browser layout engine) & neo4j-driver
+ * Powered by vis.Network (Neo4j Bloom / Browser layout engine) with Auto-Visibility Lifecycle
  */
 
 export class ForensicGraphVisualizer {
@@ -18,6 +18,7 @@ export class ForensicGraphVisualizer {
     this.physicsRunning = true;
     this.activeCategoryFilter = null;
     this.searchQuery = '';
+    this.needsRender = true;
 
     // Neo4j Color Schema (Standard Neo4j Bloom Palettes)
     this.neo4jColors = {
@@ -32,17 +33,30 @@ export class ForensicGraphVisualizer {
       sharedNexus: { background: '#F43F5E', border: '#E11D48', highlight: { background: '#FB7185', border: '#FFFFFF' } }
     };
 
-    this.initNetwork();
+    // Auto-detect when container becomes visible
+    if (window.IntersectionObserver && this.container) {
+      this.observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            this.renderIfVisible();
+          }
+        });
+      }, { threshold: 0.05 });
+      this.observer.observe(this.container);
+    }
   }
 
   initNetwork() {
-    if (!this.container || typeof window.vis === 'undefined') {
-      console.warn('vis-network library not loaded or container not found.');
+    if (!this.container) return;
+    if (typeof window.vis === 'undefined' || !window.vis.Network) {
+      console.warn('vis-network not loaded yet.');
       return;
     }
 
-    this.nodesDataSet = new window.vis.DataSet([]);
-    this.edgesDataSet = new window.vis.DataSet([]);
+    if (!this.nodesDataSet) {
+      this.nodesDataSet = new window.vis.DataSet([]);
+      this.edgesDataSet = new window.vis.DataSet([]);
+    }
 
     const data = {
       nodes: this.nodesDataSet,
@@ -50,6 +64,9 @@ export class ForensicGraphVisualizer {
     };
 
     const options = {
+      autoResize: true,
+      width: '100%',
+      height: '620px',
       nodes: {
         shape: 'dot',
         size: 26,
@@ -86,7 +103,7 @@ export class ForensicGraphVisualizer {
         smooth: {
           enabled: true,
           type: 'curvedCW',
-          roundness: 0.14
+          roundness: 0.15
         },
         font: {
           color: '#94A3B8',
@@ -103,16 +120,16 @@ export class ForensicGraphVisualizer {
         enabled: true,
         solver: 'forceAtlas2Based',
         forceAtlas2Based: {
-          gravitationalConstant: -85,
-          centralGravity: 0.007,
-          springLength: 160,
+          gravitationalConstant: -75,
+          centralGravity: 0.008,
+          springLength: 150,
           springConstant: 0.05,
           damping: 0.78,
-          avoidOverlap: 0.92 // Prevents node and label overlapping completely
+          avoidOverlap: 0.92
         },
         stabilization: {
           enabled: true,
-          iterations: 160,
+          iterations: 150,
           updateInterval: 25
         }
       },
@@ -148,7 +165,6 @@ export class ForensicGraphVisualizer {
   }
 
   setData(correlationResult, incidents) {
-    if (!this.network) this.initNetwork();
     if (!incidents || incidents.length === 0) return;
 
     this.correlationResult = correlationResult;
@@ -166,12 +182,11 @@ export class ForensicGraphVisualizer {
       });
     }
 
-    // Helper to add Neo4j node
     const addNeoNode = (id, rawLabel, neo4jLabel, category, colorScheme, size, metadata = {}) => {
       if (!nodeMap.has(id)) {
         let displayLabel = rawLabel;
-        if (rawLabel.length > 24) {
-          displayLabel = rawLabel.substring(0, 22) + '…';
+        if (rawLabel.length > 22) {
+          displayLabel = rawLabel.substring(0, 20) + '…';
         }
         if (category === 'hash' && rawLabel.length > 20) {
           displayLabel = `Hash:${rawLabel.substring(0, 6)}…${rawLabel.substring(rawLabel.length - 4)}`;
@@ -190,11 +205,7 @@ export class ForensicGraphVisualizer {
             size: 11,
             face: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif'
           },
-          title: `<div style="font-family:Inter; font-size:12px; padding:4px;">
-            <strong style="color:${colorScheme.background}">:${neo4jLabel}</strong><br/>
-            <strong>${rawLabel}</strong><br/>
-            <span style="color:#94a3b8; font-size:11px;">Category: ${category}</span>
-          </div>`,
+          title: `:${neo4jLabel} - ${rawLabel}`,
           metadata
         };
         nodeMap.set(id, node);
@@ -203,14 +214,13 @@ export class ForensicGraphVisualizer {
       return nodeMap.get(id);
     };
 
-    // Helper to add Neo4j edge
     const addNeoEdge = (fromId, toId, cypherRel, isNexus = false, isActor = false) => {
       const edge = {
         id: `e-${fromId}-${toId}-${cypherRel}`,
         from: fromId,
         to: toId,
         label: `[:${cypherRel}]`,
-        color: isNexus ? { color: '#F43F5E', highlight: '#FB7185' } : (isActor ? { color: '#FF7C00', highlight: '#FFA540' } : { color: 'rgba(148, 163, 184, 0.45)', highlight: '#00D563' }),
+        color: isNexus ? { color: '#F43F5E', highlight: '#FB7185' } : (isActor ? { color: '#FF7C00', highlight: '#FFA540' } : { color: 'rgba(100, 116, 139, 0.45)', highlight: '#00D563' }),
         width: isNexus ? 2.8 : (isActor ? 2.2 : 1.8),
         dashes: isNexus ? [5, 5] : (isActor ? [4, 4] : false),
         arrows: { to: { enabled: true, scaleFactor: 0.7 } },
@@ -220,7 +230,7 @@ export class ForensicGraphVisualizer {
       this.allEdges.push(edge);
     };
 
-    // 1. Add Incident Nodes
+    // 1. Incidents
     const incNodes = [];
     incidents.forEach((inc) => {
       const isMobile = inc.vectorType.toLowerCase().includes('mobile');
@@ -245,7 +255,7 @@ export class ForensicGraphVisualizer {
       incNodes.push({ inc, node: incNode });
     });
 
-    // 2. Add Threat Actor Node
+    // 2. Threat Actor
     const tiDim = correlationResult?.dimensions?.threatIntelligence;
     let actorNode = null;
     if (tiDim && tiDim.attributedActor) {
@@ -265,7 +275,7 @@ export class ForensicGraphVisualizer {
       );
     }
 
-    // 3. Add Evidence & Indicator Nodes
+    // 3. Evidence & Indicators
     incNodes.forEach(({ inc, node: incNode }) => {
       const evidence = inc.evidence || [];
       evidence.forEach(ev => {
@@ -330,14 +340,13 @@ export class ForensicGraphVisualizer {
             }
           );
 
-          // Incident -> Indicator Relationship
           const relName = isShared ? 'CROSS_VECTOR_NEXUS' : 'EXTRACTED_FROM';
           addNeoEdge(incNode.id, indNode.id, relName, isShared, false);
         });
       });
     });
 
-    // 4. Link Threat Actor to C2 Infrastructure & Nexus
+    // 4. Link Actor to Infrastructure
     if (actorNode) {
       this.allNodes
         .filter(n => (n.category === 'ip' || n.category === 'domain' || n.category === 'shared') && n.id !== actorNode.id)
@@ -346,15 +355,43 @@ export class ForensicGraphVisualizer {
         });
     }
 
-    // Refresh vis network
-    this.nodesDataSet.clear();
-    this.edgesDataSet.clear();
-    this.nodesDataSet.add(this.allNodes);
-    this.edgesDataSet.add(this.allEdges);
+    // Render if visible
+    if (this.container && this.container.offsetWidth > 0) {
+      this.renderIfVisible();
+    } else {
+      this.needsRender = true;
+    }
+  }
 
-    this.network.fit({
-      animation: { duration: 800, easingFunction: 'easeInOutQuad' }
-    });
+  renderIfVisible() {
+    if (!this.container) return;
+
+    if (!this.network) {
+      this.initNetwork();
+    }
+
+    if (this.network && this.nodesDataSet && this.allNodes.length > 0) {
+      this.nodesDataSet.clear();
+      this.edgesDataSet.clear();
+      this.nodesDataSet.add(this.allNodes);
+      this.edgesDataSet.add(this.allEdges);
+
+      setTimeout(() => {
+        if (this.network) {
+          this.network.setSize('100%', '620px');
+          this.network.redraw();
+          this.network.fit({
+            animation: { duration: 400, easingFunction: 'easeInOutQuad' }
+          });
+        }
+      }, 50);
+
+      this.needsRender = false;
+    }
+  }
+
+  resizeCanvas() {
+    this.renderIfVisible();
   }
 
   highlightNeighborhood(selectedNodeId) {
@@ -366,10 +403,7 @@ export class ForensicGraphVisualizer {
       const isConnected = node.id === selectedNodeId || connectedNodeIds.includes(node.id);
       return {
         id: node.id,
-        opacity: isConnected ? 1.0 : 0.15,
-        font: {
-          color: isConnected ? '#FFFFFF' : 'rgba(255,255,255,0.2)'
-        }
+        color: isConnected ? node.color : { background: 'rgba(30, 41, 59, 0.4)', border: 'rgba(51, 65, 85, 0.3)' }
       };
     });
 
@@ -377,10 +411,7 @@ export class ForensicGraphVisualizer {
       const isConnected = connectedEdgeIds.includes(edge.id);
       return {
         id: edge.id,
-        opacity: isConnected ? 1.0 : 0.08,
-        font: {
-          color: isConnected ? '#94A3B8' : 'rgba(148,163,184,0.1)'
-        }
+        color: isConnected ? edge.color : { color: 'rgba(51, 65, 85, 0.15)' }
       };
     });
 
@@ -392,13 +423,11 @@ export class ForensicGraphVisualizer {
     if (!this.network) return;
     const resetNodes = this.allNodes.map(node => ({
       id: node.id,
-      opacity: 1.0,
-      font: { color: '#FFFFFF' }
+      color: node.color
     }));
     const resetEdges = this.allEdges.map(edge => ({
       id: edge.id,
-      opacity: 1.0,
-      font: { color: '#94A3B8' }
+      color: edge.color
     }));
 
     this.nodesDataSet.update(resetNodes);
@@ -410,15 +439,12 @@ export class ForensicGraphVisualizer {
     const query = cypherQuery.trim();
     const queryUpper = query.toUpperCase();
 
-    // Reset view if MATCH (n) RETURN n
     if (queryUpper.includes('MATCH (N) RETURN N') || queryUpper === 'MATCH (N) RETURN *') {
-      this.clearFilter();
+      this.clearHighlight();
       return { count: this.allNodes.length, message: `Returned all ${this.allNodes.length} graph entities.` };
     }
 
     let matchedNodeIds = new Set();
-
-    // Check for Label filter e.g. MATCH (n:SharedNexus) or MATCH (i:Incident)
     const labelMatch = query.match(/:([A-Za-z0-9_]+)/);
     const whereMatch = query.match(/WHERE\s+(.+?)(?:RETURN|$)/i);
 
@@ -435,7 +461,6 @@ export class ForensicGraphVisualizer {
       });
     }
 
-    // Check WHERE CONTAINS
     if (whereMatch) {
       const condition = whereMatch[1];
       const containsMatch = condition.match(/CONTAINS\s+['"](.+?)['"]/i);
@@ -450,7 +475,6 @@ export class ForensicGraphVisualizer {
     }
 
     if (matchedNodeIds.size === 0) {
-      // Fallback: search anywhere in label
       const terms = query.replace(/(MATCH|RETURN|WHERE|\(|\)|\[|\]|:|-|>|<)/gi, ' ').split(/\s+/).filter(t => t.length > 2);
       this.allNodes.forEach(n => {
         terms.forEach(t => {
@@ -462,20 +486,15 @@ export class ForensicGraphVisualizer {
     }
 
     if (matchedNodeIds.size > 0) {
-      // Dim non-matches
       const updateNodes = this.allNodes.map(node => ({
         id: node.id,
-        opacity: matchedNodeIds.has(node.id) ? 1.0 : 0.12
+        color: matchedNodeIds.has(node.id) ? node.color : { background: 'rgba(30, 41, 59, 0.3)', border: 'rgba(51, 65, 85, 0.2)' }
       }));
       this.nodesDataSet.update(updateNodes);
       return { count: matchedNodeIds.size, message: `Query matched ${matchedNodeIds.size} entities.` };
     }
 
     return { count: 0, message: 'No matching nodes found for Cypher query.' };
-  }
-
-  clearFilter() {
-    this.clearHighlight();
   }
 
   setFilter(searchStr) {
@@ -490,7 +509,7 @@ export class ForensicGraphVisualizer {
       const matches = node.rawLabel.toLowerCase().includes(query) || node.neo4jLabel.toLowerCase().includes(query);
       return {
         id: node.id,
-        opacity: matches ? 1.0 : 0.12
+        color: matches ? node.color : { background: 'rgba(30, 41, 59, 0.3)', border: 'rgba(51, 65, 85, 0.2)' }
       };
     });
     this.nodesDataSet.update(updateNodes);
@@ -509,7 +528,7 @@ export class ForensicGraphVisualizer {
       const matches = node.category.toLowerCase().includes(category.toLowerCase()) || node.neo4jLabel.toLowerCase().includes(category.toLowerCase());
       return {
         id: node.id,
-        opacity: matches ? 1.0 : 0.12
+        color: matches ? node.color : { background: 'rgba(30, 41, 59, 0.3)', border: 'rgba(51, 65, 85, 0.2)' }
       };
     });
     this.nodesDataSet.update(updateNodes);
@@ -536,13 +555,6 @@ export class ForensicGraphVisualizer {
     this.resetZoom();
   }
 
-  resizeCanvas() {
-    if (this.network) {
-      this.network.redraw();
-      this.network.fit();
-    }
-  }
-
   togglePhysics() {
     if (!this.network) return true;
     this.physicsRunning = !this.physicsRunning;
@@ -550,9 +562,6 @@ export class ForensicGraphVisualizer {
     return this.physicsRunning;
   }
 
-  /**
-   * Generates pure Neo4j Cypher (.cql) script representing the entire incident graph
-   */
   generateCypherScript() {
     const lines = [
       '// =========================================================================',
@@ -562,7 +571,6 @@ export class ForensicGraphVisualizer {
       '// 1. Create Forensic Incident & Entity Nodes'
     ];
 
-    // Nodes
     this.allNodes.forEach(node => {
       const sanitizedId = node.id.replace(/[^a-zA-Z0-9_]/g, '_');
       const cleanLabel = (node.rawLabel || '').replace(/'/g, "\\'");
@@ -583,7 +591,6 @@ export class ForensicGraphVisualizer {
 
     lines.push('\n// 2. Create Directed Forensic Attribution & Causality Relationships');
 
-    // Relationships
     this.allEdges.forEach(edge => {
       const fromId = edge.from.replace(/[^a-zA-Z0-9_]/g, '_');
       const toId = edge.to.replace(/[^a-zA-Z0-9_]/g, '_');

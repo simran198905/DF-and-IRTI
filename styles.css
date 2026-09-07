@@ -474,12 +474,14 @@ body {
 
 /* Neo4j Force Graph Visualizer & Cypher Console */
 .graph-container-wrapper.neo4j-theme {
-  position: relative;
-  border: 1px solid rgba(0, 213, 99, 0.3);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(0, 213, 99, 0.35);
   border-radius: 12px;
   overflow: hidden;
   background: #0b101e;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), inset 0 0 80px rgba(11, 16, 30, 0.8);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  margin-bottom: 24px;
 }
 
 .cypher-prompt-bar {
@@ -547,34 +549,14 @@ body {
   gap: 8px;
 }
 
-.neo4j-network-container {
-  width: 100%;
-  height: 620px;
-  background: #0b101e;
-  display: block;
-  outline: none;
-  cursor: grab;
-}
-
-.neo4j-network-container:active {
-  cursor: grabbing;
-}
-
-.graph-top-bar {
-  position: absolute;
-  top: 60px;
-  left: 14px;
-  right: 14px;
+.graph-toolbar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  z-index: 15;
-  pointer-events: none;
-}
-
-.graph-top-bar > * {
-  pointer-events: auto;
+  padding: 8px 16px;
+  background: #070b14;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .graph-search-container {
@@ -583,20 +565,18 @@ body {
   gap: 8px;
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 6px 12px;
-  backdrop-filter: blur(12px);
-  width: 280px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: 6px;
+  padding: 5px 12px;
+  width: 250px;
 }
 
 .graph-search-container:focus-within {
   border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .graph-search-container .search-icon {
-  font-size: 13px;
+  font-size: 12px;
   opacity: 0.7;
 }
 
@@ -606,13 +586,7 @@ body {
   outline: none;
   color: #f1f5f9;
   font-size: 12px;
-  font-family: var(--font-sans, inherit);
   width: 100%;
-}
-
-.graph-search-container input::placeholder {
-  color: #64748b;
-  font-size: 11px;
 }
 
 .graph-controls {
@@ -624,34 +598,31 @@ body {
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #cbd5e1;
-  padding: 6px 10px;
+  padding: 5px 10px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  transition: all 0.15s;
 }
 
 .btn-ctrl:hover {
   background: rgba(30, 41, 59, 0.95);
-  border-color: #38bdf8;
+  border-color: #00d563;
   color: #ffffff;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 .graph-status-pill {
   background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid rgba(0, 213, 99, 0.3);
   border-radius: 20px;
-  padding: 5px 12px;
+  padding: 4px 12px;
   font-size: 11px;
   font-family: var(--font-mono, monospace);
-  color: #38bdf8;
-  backdrop-filter: blur(10px);
+  color: #00d563;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -665,17 +636,42 @@ body {
   box-shadow: 0 0 8px #10b981;
 }
 
+.graph-viewport-relative {
+  position: relative;
+  width: 100%;
+  height: 620px;
+  min-height: 620px;
+  background: #0b101e;
+}
+
+.neo4j-network-container {
+  width: 100% !important;
+  height: 620px !important;
+  min-height: 620px !important;
+  background: #0b101e;
+  outline: none;
+  cursor: grab;
+}
+
+.neo4j-network-container:active {
+  cursor: grabbing;
+}
+
+.neo4j-network-container canvas {
+  display: block;
+}
+
 .graph-legend {
   position: absolute;
   bottom: 14px;
   left: 14px;
-  background: rgba(15, 23, 42, 0.88);
+  background: rgba(15, 23, 42, 0.92);
   padding: 8px 14px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 11px;
   display: flex;
-  gap: 14px;
+  gap: 12px;
   backdrop-filter: blur(12px);
   z-index: 10;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
@@ -727,13 +723,13 @@ body {
 
 .graph-inspector {
   position: absolute;
-  top: 60px;
+  top: 14px;
   right: 14px;
   width: 330px;
-  max-height: calc(100% - 80px);
+  max-height: calc(100% - 28px);
   overflow-y: auto;
   background: rgba(13, 19, 33, 0.96);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(0, 213, 99, 0.3);
   border-radius: 10px;
   padding: 18px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
