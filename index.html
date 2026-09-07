@@ -129,19 +129,58 @@
       </div>
     </div>
 
-    <!-- Tab 3: Interactive Entity Graph -->
+    <!-- Tab 3: Interactive Neo4j Entity Graph -->
     <div id="tabGraph" class="tab-content-panel">
-      <div class="graph-container-wrapper">
-        <div class="graph-controls">
-          <button id="btnResetGraphZoom" class="btn btn-secondary" style="font-size:11px;">🔍 Reset Zoom & Pan</button>
+      <div class="graph-container-wrapper neo4j-theme">
+        <!-- Neo4j Cypher Command Prompt Bar -->
+        <div class="cypher-prompt-bar">
+          <div class="neo4j-brand-chip">
+            <span class="neo4j-logo-icon">🟩</span>
+            <span class="neo4j-brand-text">Neo4j</span>
+          </div>
+          <div class="cypher-input-wrapper">
+            <span class="cypher-dollar">$</span>
+            <input type="text" id="cypherQueryInput" class="cypher-input" value="MATCH (n) RETURN n" placeholder="MATCH (i:Incident)-[r]->(e) RETURN i, r, e" />
+          </div>
+          <div class="cypher-bar-actions">
+            <button id="btnRunCypher" class="btn btn-primary btn-sm" title="Execute Cypher Query">⚡ Run</button>
+            <button id="btnExportCypher" class="btn btn-secondary btn-sm" title="Export Cypher Script">💾 Export .CQL</button>
+            <button id="btnNeo4jConnect" class="btn btn-secondary btn-sm" title="Connect to live Neo4j Database">🔌 Neo4j Bolt</button>
+          </div>
         </div>
 
-        <div class="graph-legend">
-          <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Mobile Incident</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span> Email/BEC Incident</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Infrastructure / C2</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#a855f7;"></span> Target Identity</div>
-          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Threat Actor</div>
+        <!-- Graph Top Toolbar -->
+        <div class="graph-top-bar">
+          <div class="graph-search-container">
+            <span class="search-icon">🔎</span>
+            <input type="text" id="graphSearchInput" placeholder="Filter node, IP, domain, user..." />
+          </div>
+
+          <div class="graph-controls">
+            <button id="btnZoomIn" class="btn btn-secondary btn-ctrl" title="Zoom In">➕</button>
+            <button id="btnZoomOut" class="btn btn-secondary btn-ctrl" title="Zoom Out">➖</button>
+            <button id="btnFitGraph" class="btn btn-secondary btn-ctrl" title="Fit to View">⛶ Fit</button>
+            <button id="btnResetGraphZoom" class="btn btn-secondary btn-ctrl" title="Reset View">⟲ Reset</button>
+            <button id="btnTogglePhysics" class="btn btn-secondary btn-ctrl" title="Pause / Resume Layout Simulation">⏸️ Pause</button>
+          </div>
+
+          <div class="graph-status-pill" id="graphStatusPill">
+            <span class="status-indicator-dot"></span> Neo4j Graph Ready
+          </div>
+        </div>
+
+        <!-- Neo4j Graph Viewport -->
+        <div id="forensicNeo4jNetwork" class="neo4j-network-container"></div>
+
+        <!-- Neo4j Entity Legend -->
+        <div class="graph-legend neo4j-legend">
+          <div class="legend-item" data-filter="mobile"><span class="legend-dot" style="background:#00C58A;"></span> :Incident (Mobile)</div>
+          <div class="legend-item" data-filter="email"><span class="legend-dot" style="background:#0099FF;"></span> :Incident (Email)</div>
+          <div class="legend-item" data-filter="ip"><span class="legend-dot" style="background:#E74C3C;"></span> :C2_Infrastructure</div>
+          <div class="legend-item" data-filter="domain"><span class="legend-dot" style="background:#FF5722;"></span> :Domain</div>
+          <div class="legend-item" data-filter="account"><span class="legend-dot" style="background:#9C27B0;"></span> :TargetIdentity</div>
+          <div class="legend-item" data-filter="threat_actor"><span class="legend-dot" style="background:#FF7C00;"></span> :ThreatActor</div>
+          <div class="legend-item legend-nexus"><span class="legend-dot legend-dot-pulse"></span> :SharedNexus</div>
         </div>
 
         <!-- Node Inspector Sidebar -->
@@ -149,8 +188,6 @@
           <button id="btnCloseInspector" class="inspector-close-btn">&times;</button>
           <div id="graphInspectorContent"></div>
         </div>
-
-        <canvas id="forensicGraphCanvas" class="graph-canvas"></canvas>
       </div>
     </div>
 
@@ -284,6 +321,56 @@
     </div>
   </div>
 
+  <!-- Neo4j Cypher Export Modal -->
+  <div id="cypherExportModal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:8px;">🟩 Neo4j Cypher Script Generator</h3>
+        <button id="btnCloseCypherModal" class="modal-close-btn">&times;</button>
+      </div>
+      <p class="text-muted" style="font-size:12px; margin-bottom:12px;">Run this declarative Cypher script directly in Neo4j Browser, Neo4j Desktop, AuraDB, or cypher-shell to ingest the cross-vector forensic incident graph.</p>
+      <pre id="cypherCodeOutput" style="background:#090d16; padding:14px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; color:#38bdf8; max-height:320px; overflow-y:auto; border:1px solid rgba(56,189,248,0.25); white-space:pre-wrap; line-height:1.5;"></pre>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+        <button id="btnCopyCypher" class="btn btn-secondary">📋 Copy Cypher</button>
+        <button id="btnDownloadCypher" class="btn btn-primary">⬇️ Download forensic_graph.cql</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Neo4j Bolt Connection Modal -->
+  <div id="neo4jConnectModal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 style="display:flex; align-items:center; gap:8px;">🔌 Connect Live Neo4j Database</h3>
+        <button id="btnCloseNeo4jModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="neo4jConnectForm">
+        <div class="form-group">
+          <label class="form-label">Bolt Connection URI</label>
+          <input type="text" id="neo4jUri" class="form-control" value="bolt://localhost:7687" required>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Database Username</label>
+            <input type="text" id="neo4jUser" class="form-control" value="neo4j" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Database Password</label>
+            <input type="password" id="neo4jPass" class="form-control" placeholder="••••••••">
+          </div>
+        </div>
+        <div id="neo4jConnectStatus" style="font-size:12px; margin-top:10px; display:none; padding:8px 12px; border-radius:6px;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+          <button type="button" id="btnTestNeo4j" class="btn btn-secondary">Test Connection</button>
+          <button type="submit" class="btn btn-primary">Sync Graph to Neo4j</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Neo4j & Vis-Network Libraries -->
+  <script src="js/libs/vis-network.min.js"></script>
+  <script src="js/libs/neo4j-web.min.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

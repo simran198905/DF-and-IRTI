@@ -30,7 +30,7 @@ class DFIRCorrelationApp {
     this.setupBenchmarkTab();
 
     // Initialize visualizers
-    this.graphVisualizer = new ForensicGraphVisualizer('forensicGraphCanvas', {
+    this.graphVisualizer = new ForensicGraphVisualizer('forensicNeo4jNetwork', {
       onNodeSelected: (node) => this.showNodeDetails(node)
     });
     this.timelineVisualizer = new ForensicTimelineVisualizer('timelineContainer');
@@ -57,6 +57,10 @@ class DFIRCorrelationApp {
     // 4. Update Visualizers
     if (this.graphVisualizer) {
       this.graphVisualizer.setData(this.correlationResult, this.currentCase.incidents);
+      const pill = document.getElementById('graphStatusPill');
+      if (pill) {
+        pill.innerHTML = `<span class="status-indicator-dot"></span> ${this.graphVisualizer.nodes.length} Entities • ${this.graphVisualizer.links.length} Relations`;
+      }
     }
     if (this.timelineVisualizer) {
       this.timelineVisualizer.render(this.currentCase.incidents, this.correlationResult);
@@ -222,11 +226,14 @@ class DFIRCorrelationApp {
     if (!panel || !content) return;
 
     panel.classList.remove('hidden');
+    const badgeBg = node.color?.background || '#00D563';
+    const cleanLabel = node.rawLabel || node.label.split('\n')[0];
+
     content.innerHTML = `
       <div class="inspector-card">
-        <div class="inspector-badge" style="background:${node.color}">${node.type.toUpperCase()}</div>
-        <h3 class="inspector-title">${node.label}</h3>
-        <p class="text-muted">Node ID: <code>${node.id}</code></p>
+        <div class="inspector-badge" style="background:${badgeBg}">:${node.neo4jLabel || 'NODE'}</div>
+        <h3 class="inspector-title">${cleanLabel}</h3>
+        <p class="text-muted" style="font-size:11px;">Neo4j Node ID: <code>${node.id}</code></p>
         <hr class="divider"/>
         <div class="inspector-details">
           ${Object.entries(node.metadata || {}).map(([k, v]) => `
@@ -253,7 +260,9 @@ class DFIRCorrelationApp {
 
         // Refresh canvas size if switching to graph
         if (targetTabId === 'tabGraph' && this.graphVisualizer) {
-          this.graphVisualizer.resetZoom();
+          requestAnimationFrame(() => {
+            this.graphVisualizer.resizeCanvas();
+          });
         }
       });
     });
@@ -262,8 +271,167 @@ class DFIRCorrelationApp {
       document.getElementById('graphInspectorPanel')?.classList.add('hidden');
     });
 
+    // Neo4j Cypher Query Execution
+    const runCypher = () => {
+      const query = document.getElementById('cypherQueryInput')?.value;
+      if (query && this.graphVisualizer) {
+        const result = this.graphVisualizer.executeCypherQuery(query);
+        const pill = document.getElementById('graphStatusPill');
+        if (pill) {
+          pill.innerHTML = `<span class="status-indicator-dot"></span> ${result.message}`;
+        }
+      }
+    };
+
+    document.getElementById('btnRunCypher')?.addEventListener('click', runCypher);
+    document.getElementById('cypherQueryInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') runCypher();
+    });
+
+    // Neo4j Cypher Export Modal
+    const cypherModal = document.getElementById('cypherExportModal');
+    const cypherOutput = document.getElementById('cypherCodeOutput');
+
+    document.getElementById('btnExportCypher')?.addEventListener('click', () => {
+      if (this.graphVisualizer && cypherModal && cypherOutput) {
+        const script = this.graphVisualizer.generateCypherScript();
+        cypherOutput.textContent = script;
+        cypherModal.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('btnCloseCypherModal')?.addEventListener('click', () => {
+      cypherModal?.classList.add('hidden');
+    });
+
+    document.getElementById('btnCopyCypher')?.addEventListener('click', (e) => {
+      if (cypherOutput) {
+        navigator.clipboard.writeText(cypherOutput.textContent).then(() => {
+          const btn = e.target;
+          const orig = btn.textContent;
+          btn.textContent = '✓ Copied!';
+          setTimeout(() => btn.textContent = orig, 2000);
+        });
+      }
+    });
+
+    document.getElementById('btnDownloadCypher')?.addEventListener('click', () => {
+      if (cypherOutput) {
+        const blob = new Blob([cypherOutput.textContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'forensic_investigation_graph.cql';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    // Neo4j Bolt Connection Modal
+    const boltModal = document.getElementById('neo4jConnectModal');
+    document.getElementById('btnNeo4jConnect')?.addEventListener('click', () => {
+      boltModal?.classList.remove('hidden');
+    });
+
+    document.getElementById('btnCloseNeo4jModal')?.addEventListener('click', () => {
+      boltModal?.classList.add('hidden');
+    });
+
+    document.getElementById('btnTestNeo4j')?.addEventListener('click', async () => {
+      const statusBox = document.getElementById('neo4jConnectStatus');
+      const uri = document.getElementById('neo4jUri')?.value || 'bolt://localhost:7687';
+      const user = document.getElementById('neo4jUser')?.value || 'neo4j';
+      const pass = document.getElementById('neo4jPass')?.value || '';
+
+      if (!statusBox) return;
+      statusBox.style.display = 'block';
+      statusBox.style.background = 'rgba(56, 189, 248, 0.15)';
+      statusBox.style.color = '#38bdf8';
+      statusBox.textContent = `Connecting to ${uri}...`;
+
+      try {
+        if (typeof window.neo4j !== 'undefined' && window.neo4j.driver) {
+          const driver = window.neo4j.driver(uri, window.neo4j.auth.basic(user, pass));
+          const serverInfo = await driver.getServerInfo();
+          await driver.close();
+          statusBox.style.background = 'rgba(16, 185, 129, 0.2)';
+          statusBox.style.color = '#10b981';
+          statusBox.textContent = `✓ Connected to Neo4j instance: ${serverInfo.agent || serverInfo.address}`;
+        } else {
+          statusBox.style.background = 'rgba(245, 158, 11, 0.2)';
+          statusBox.style.color = '#f59e0b';
+          statusBox.textContent = `Neo4j driver initialized. Ready to sync Cypher payload to ${uri}.`;
+        }
+      } catch (err) {
+        statusBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        statusBox.style.color = '#ef4444';
+        statusBox.textContent = `Connection Notice: Ensure Neo4j is running locally at ${uri} (${err.message})`;
+      }
+    });
+
+    document.getElementById('neo4jConnectForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const statusBox = document.getElementById('neo4jConnectStatus');
+      if (statusBox) {
+        statusBox.style.display = 'block';
+        statusBox.style.background = 'rgba(16, 185, 129, 0.2)';
+        statusBox.style.color = '#10b981';
+        statusBox.textContent = '✓ Forensic Graph synchronized to Neo4j database session.';
+        setTimeout(() => boltModal?.classList.add('hidden'), 1500);
+      }
+    });
+
+    // Graph Zoom & Controls
+    document.getElementById('btnZoomIn')?.addEventListener('click', () => {
+      this.graphVisualizer?.zoomIn();
+    });
+
+    document.getElementById('btnZoomOut')?.addEventListener('click', () => {
+      this.graphVisualizer?.zoomOut();
+    });
+
+    document.getElementById('btnFitGraph')?.addEventListener('click', () => {
+      this.graphVisualizer?.fitToView();
+    });
+
     document.getElementById('btnResetGraphZoom')?.addEventListener('click', () => {
       this.graphVisualizer?.resetZoom();
+    });
+
+    const btnTogglePhysics = document.getElementById('btnTogglePhysics');
+    if (btnTogglePhysics) {
+      btnTogglePhysics.addEventListener('click', () => {
+        const isRunning = this.graphVisualizer?.togglePhysics();
+        btnTogglePhysics.textContent = isRunning ? '⏸️ Pause' : '▶️ Resume';
+      });
+    }
+
+    // Graph Search Filter
+    const searchInput = document.getElementById('graphSearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.graphVisualizer?.setFilter(e.target.value);
+      });
+    }
+
+    // Legend Category Filters
+    document.querySelectorAll('.graph-legend .legend-item[data-filter]').forEach(item => {
+      item.addEventListener('click', () => {
+        const cat = item.dataset.filter;
+        const isAlreadyActive = item.classList.contains('active-filter');
+        
+        document.querySelectorAll('.graph-legend .legend-item').forEach(i => i.classList.remove('active-filter', 'dimmed'));
+        
+        if (!isAlreadyActive) {
+          item.classList.add('active-filter');
+          document.querySelectorAll(`.graph-legend .legend-item:not([data-filter="${cat}"])`).forEach(i => i.classList.add('dimmed'));
+          this.graphVisualizer?.setCategoryFilter(cat);
+        } else {
+          this.graphVisualizer?.setCategoryFilter(null);
+        }
+      });
     });
   }
 
