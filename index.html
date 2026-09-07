@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cross-Vector Forensic & Threat Intelligence Correlation Framework</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-icon">🛡️</div>
+      <div>
+        <h1 class="brand-title">Cross-Vector Forensics & Threat Intel Correlation</h1>
+        <p class="brand-subtitle">DFIR Multi-Incident Attribution & Causality Framework</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="case-select-wrapper">
+        <label for="caseSelectorDropdown" class="case-select-label">Active Scenario:</label>
+        <select id="caseSelectorDropdown" class="case-dropdown"></select>
+      </div>
+      <button id="btnOpenAddEvidenceModal" class="btn btn-primary">➕ Add Forensic Artifact</button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="app-nav">
+    <button class="nav-tab-btn active" data-tab="tabDashboard">📊 Investigation Dashboard</button>
+    <button class="nav-tab-btn" data-tab="tabEvidence">📑 Multi-Vector Evidence Hub</button>
+    <button class="nav-tab-btn" data-tab="tabGraph">🕸️ Interactive Entity Graph</button>
+    <button class="nav-tab-btn" data-tab="tabTimeline">⏱️ Chronological Swimlane</button>
+    <button class="nav-tab-btn" data-tab="tabMatrix">⚖️ 6D Correlation Matrix</button>
+    <button class="nav-tab-btn" data-tab="tabReport">📄 DFIR Incident Report</button>
+    <button class="nav-tab-btn" data-tab="tabBenchmark">🧪 Academic Evaluation Lab</button>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="main-container">
+
+    <!-- Tab 1: Dashboard -->
+    <div id="tabDashboard" class="tab-content-panel active">
+      <div class="grid-4stats">
+        <div class="stat-box">
+          <div class="stat-box-title">Shared Nexus IOCs</div>
+          <div id="statSharedIOCs" class="stat-box-num">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-title">Temporal Offset</div>
+          <div id="statTimeOffset" class="stat-box-num">--</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-title">Target Identity Alignment</div>
+          <div id="statTargetAligned" class="stat-box-num">--</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-title">Threat Intel Attribution</div>
+          <div id="statThreatActor" class="stat-box-num" style="font-size:16px;">--</div>
+        </div>
+      </div>
+
+      <div class="grid-dashboard-top">
+        <div class="card verdict-hero">
+          <div>
+            <div class="hero-header">
+              <span id="caseBadge" class="case-id-badge">CASE-001</span>
+              <span id="confidenceLevelBadge" class="confidence-pill pill-high">HIGH CONFIDENCE</span>
+            </div>
+            <h2 id="caseTitle" class="verdict-headline">Loading Scenario...</h2>
+            <div id="caseSubtitle" class="verdict-sub"></div>
+            
+            <div class="verdict-explanation-box">
+              <strong>Forensic Correlation Hypothesis:</strong>
+              <p id="dashboardVerdictExplanation" style="margin-top:4px; color: var(--text-primary);"></p>
+            </div>
+
+            <div class="verdict-explanation-box counter-box">
+              <strong style="color: var(--color-med);">Alternative / Counter-Hypothesis Evaluation:</strong>
+              <p id="dashboardCounterHypothesis" style="margin-top:4px; color: var(--text-secondary);"></p>
+            </div>
+          </div>
+          <p id="caseDescription" class="text-muted" style="font-size:12px; margin-top:12px;"></p>
+        </div>
+
+        <div class="card confidence-gauge-card">
+          <h3 style="font-size:14px; text-transform:uppercase; color:var(--text-muted);">Attribution Score</h3>
+          <div class="gauge-circle">
+            <span id="confidenceScoreDisplay" class="score-number score-high">--%</span>
+          </div>
+          <div id="dashboardVerdictText" style="font-weight:700; font-size:14px; color:#fff;">Evaluating...</div>
+          <small class="text-muted" style="margin-top:6px;">Calculated across 6 independent evidence vectors</small>
+        </div>
+      </div>
+
+      <h3 style="font-size:16px; margin-bottom:14px; color:#fff;">Concurrent Incidents Under Cross-Correlation</h3>
+      <div id="dashboardIncidentCards" class="grid-2col"></div>
+    </div>
+
+    <!-- Tab 2: Evidence Hub -->
+    <div id="tabEvidence" class="tab-content-panel">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div>
+            <h3 style="font-size:16px; color:#fff;">Normalized Cross-Vector Forensic Records</h3>
+            <p class="text-muted" style="font-size:12px;">Unified schema normalizes mobile telemetry, email headers, Azure AD/Okta logins, and threat intelligence</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="dfir-table">
+            <thead>
+              <tr>
+                <th>Artifact ID</th>
+                <th>Evidence Vector</th>
+                <th>Timestamp</th>
+                <th>Event & Description</th>
+                <th>Extracted Indicators (IOCs)</th>
+                <th>Severity</th>
+              </tr>
+            </thead>
+            <tbody id="evidenceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Interactive Entity Graph -->
+    <div id="tabGraph" class="tab-content-panel">
+      <div class="graph-container-wrapper">
+        <div class="graph-controls">
+          <button id="btnResetGraphZoom" class="btn btn-secondary" style="font-size:11px;">🔍 Reset Zoom & Pan</button>
+        </div>
+
+        <div class="graph-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Mobile Incident</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span> Email/BEC Incident</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Infrastructure / C2</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#a855f7;"></span> Target Identity</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Threat Actor</div>
+        </div>
+
+        <!-- Node Inspector Sidebar -->
+        <div id="graphInspectorPanel" class="graph-inspector hidden">
+          <button id="btnCloseInspector" class="inspector-close-btn">&times;</button>
+          <div id="graphInspectorContent"></div>
+        </div>
+
+        <canvas id="forensicGraphCanvas" class="graph-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Tab 4: Chronological Timeline -->
+    <div id="tabTimeline" class="tab-content-panel">
+      <div class="card">
+        <h3 style="font-size:16px; color:#fff; margin-bottom:6px;">Cross-Vector Attack Progression & Causality Timeline</h3>
+        <p class="text-muted" style="font-size:12px; margin-bottom:18px;">Chronological swimlane ordering mobile exploit steps, credential exfiltration, and corporate email takeovers with inter-event time offsets.</p>
+        <div id="timelineContainer"></div>
+      </div>
+    </div>
+
+    <!-- Tab 5: 6D Correlation Matrix -->
+    <div id="tabMatrix" class="tab-content-panel">
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="font-size:16px; color:#fff; margin-bottom:6px;">6-Dimensional Cross-Correlation Scoring Matrix</h3>
+        <p class="text-muted" style="font-size:12px;">The framework combines multi-vector indicators with transparent mathematical weights and discount rules for generic public infrastructure.</p>
+      </div>
+      <div id="correlationDimensionCards"></div>
+    </div>
+
+    <!-- Tab 6: DFIR Report -->
+    <div id="tabReport" class="tab-content-panel">
+      <div id="reportContainer"></div>
+    </div>
+
+    <!-- Tab 7: Academic Evaluation Lab -->
+    <div id="tabBenchmark" class="tab-content-panel">
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h3 style="font-size:16px; color:#fff; margin-bottom:4px;">Academic Evaluation & Benchmark Suite</h3>
+            <p class="text-muted" style="font-size:12px;">Validates framework accuracy against ground truth multi-incident datasets and evaluates false correlation rejection.</p>
+          </div>
+          <button id="btnRunAllBenchmarks" class="btn btn-primary">⚡ Run Benchmark Test Suite</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="font-size:14px; color:#fff; margin-bottom:14px;">Ground Truth Case Validation Matrix</h4>
+        <div id="benchmarkCaseList"></div>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h4 style="font-size:14px; color:#fff; margin-bottom:10px;">Division of Responsibilities (Academic Project Model)</h4>
+        <div class="grid-2col">
+          <div style="background:var(--bg-secondary); padding:14px; border-radius:8px; border:1px solid var(--border-color);">
+            <strong style="color:var(--accent-cyan);">Person 1: Digital Forensics & Data Pipeline</strong>
+            <ul style="font-size:12.5px; color:var(--text-secondary); margin-top:8px; padding-left:18px;">
+              <li>Evidence acquisition & source extraction (Mobile Syslog, M365 Unified Audit Log)</li>
+              <li>Artifact/IOC extraction (Hashes, domains, accounts, URIs)</li>
+              <li>Unified evidence normalization schema</li>
+              <li>Cross-vector temporal timeline reconstruction</li>
+            </ul>
+          </div>
+          <div style="background:var(--bg-secondary); padding:14px; border-radius:8px; border:1px solid var(--border-color);">
+            <strong style="color:var(--accent-cyan);">Person 2: Correlation Engine & Threat Intelligence</strong>
+            <ul style="font-size:12.5px; color:var(--text-secondary); margin-top:8px; padding-left:18px;">
+              <li>Threat intelligence enrichment & campaign mapping</li>
+              <li>6-Dimensional correlation algorithms & negative evidence discounting</li>
+              <li>Explainable confidence scoring model (Low, Medium, High)</li>
+              <li>DFIR reporting & attribution assessment generation</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal for Custom Evidence Injection -->
+  <div id="customEvidenceModal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Inject Forensic Artifact</h3>
+        <button id="btnCloseModal" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="customEvidenceForm">
+        <div class="form-group">
+          <label class="form-label">Target Incident</label>
+          <select id="modalIncSelect" class="form-control">
+            <option value="0">Incident 1 (Mobile Vector)</option>
+            <option value="1">Incident 2 (Email / BEC Vector)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Evidence Vector Type</label>
+          <select id="modalEvVector" class="form-control">
+            <option value="mobile_device">Mobile Device Artifact</option>
+            <option value="corporate_email">Corporate Email / BEC</option>
+            <option value="identity_auth">Identity / Auth Log</option>
+            <option value="network_dns">Network & DNS</option>
+            <option value="threat_intel">Threat Intelligence</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Event Title</label>
+          <input type="text" id="modalEvTitle" class="form-control" required placeholder="e.g. Malicious C2 Beacon Detected">
+        </div>
+        <div class="grid-2col">
+          <div class="form-group">
+            <label class="form-label">Indicator Type</label>
+            <select id="modalIocType" class="form-control">
+              <option value="ip">IP Address</option>
+              <option value="domain">Domain Name</option>
+              <option value="user">User Account</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Indicator Value</label>
+            <input type="text" id="modalIocValue" class="form-control" required placeholder="e.g. 198.51.100.44">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Severity</label>
+          <select id="modalSeverity" class="form-control">
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description & Forensic Context</label>
+          <textarea id="modalDesc" class="form-control" rows="2" placeholder="Provide forensic observations..."></textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+          <button type="submit" class="btn btn-primary">Add Artifact & Recorrelate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
